@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSRM Teacher Portal</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3b3fce">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GSRM Portal">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+:root{--bg:#f5f7ff;--card:#fff;--primary:#3b3fce;--green:#1a9e5c;--red:#dc2626;--text:#1e1e2e;--muted:#6b7280;--border:#e5e7eb;--r:14px;--sh:0 2px 12px rgba(59,63,206,0.08);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Baloo 2',sans-serif;min-height:100vh;}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.login-box{background:var(--card);border-radius:20px;padding:36px 28px;width:100%;max-width:380px;box-shadow:0 8px 32px rgba(59,63,206,0.15);}
+.login-logo{text-align:center;margin-bottom:20px;}
+.login-logo .icon{font-size:48px;}
+.login-logo h1{font-size:22px;font-weight:800;color:var(--primary);margin-top:8px;}
+.login-logo p{font-size:13px;color:var(--muted);}
+.lbl{font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;margin-top:14px;}
+.inp{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:'Baloo 2',sans-serif;outline:none;}
+.inp:focus{border-color:var(--primary);}
+.btn-login{width:100%;margin-top:20px;padding:13px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;font-family:'Baloo 2',sans-serif;}
+.err{color:var(--red);font-size:12px;text-align:center;margin-top:10px;display:none;}
+.header{background:var(--primary);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;}
+.header h1{font-size:16px;font-weight:800;flex:1;}
+.btn-out{background:rgba(255,255,255,0.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;font-family:'Baloo 2',sans-serif;font-weight:700;}
+.tabs{background:#fff;border-bottom:2px solid var(--border);display:flex;overflow-x:auto;padding:0 8px;}
+.tab{padding:11px 12px;font-size:12px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent;color:var(--muted);white-space:nowrap;font-family:'Baloo 2',sans-serif;}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary);}
+.container{padding:14px;max-width:700px;margin:0 auto;}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+.card{background:var(--card);border-radius:var(--r);padding:16px;margin-bottom:14px;box-shadow:var(--sh);}
+.ct{font-size:13px;font-weight:800;color:var(--primary);margin-bottom:14px;}
+.fg{margin-bottom:12px;}
+.fg label{font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;}
+input,select,textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:'Baloo 2',sans-serif;outline:none;background:#fff;color:var(--text);}
+input:focus,select:focus,textarea:focus{border-color:var(--primary);}
+textarea{resize:vertical;min-height:100px;}
+.btn{padding:10px 16px;border-radius:10px;border:none;font-size:13px;font-weight:800;cursor:pointer;font-family:'Baloo 2',sans-serif;display:inline-flex;align-items:center;gap:6px;}
+.bp{background:var(--primary);color:#fff;}
+.bwa{background:#25D366;color:#fff;}
+.bo{background:#fff;border:1.5px solid var(--border);color:var(--text);}
+.br{background:var(--red);color:#fff;}
+.bg{background:var(--green);color:#fff;}
+.bsm{padding:6px 10px;font-size:11px;}
+.bfl{width:100%;justify-content:center;margin-top:10px;}
+.row{display:flex;gap:10px;}
+.row>*{flex:1;}
+.mi{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg);border-radius:10px;margin-bottom:6px;}
+.hi{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg);border-radius:10px;margin-bottom:6px;cursor:pointer;}
+.hi.nd{background:#fef2f2;}
+.mp{background:#e8f5e9;border-left:4px solid #25D366;border-radius:10px;padding:14px;font-size:13px;line-height:1.9;white-space:pre-wrap;font-family:'Baloo 2',sans-serif;margin:12px 0;}
+.ma{display:flex;gap:10px;flex-wrap:wrap;}
+.empty{text-align:center;padding:30px;color:var(--muted);}
+.sh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;}
+.chip{background:#eef2ff;color:var(--primary);border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700;}
+.grp-hd{font-size:12px;font-weight:800;color:var(--primary);margin-bottom:6px;padding:6px 10px;background:#eef2ff;border-radius:8px;display:flex;justify-content:space-between;align-items:center;}
+.si{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg);border-radius:10px;margin-bottom:6px;}
+.sn{width:26px;height:26px;background:var(--primary);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;}
+/* Optional subject buttons */
+.opt-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+.opt-btn{padding:8px 16px;border:2px solid var(--border);border-radius:20px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Baloo 2',sans-serif;color:var(--muted);transition:all 0.15s;}
+.opt-btn.selected{background:var(--primary);border-color:var(--primary);color:#fff;}
+.info-box{background:#fef3c7;border:1px solid #fbbf24;border-radius:8px;padding:10px 12px;font-size:12px;color:#92400e;margin-bottom:12px;}
+.edit-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;padding:20px;}
+.edit-modal.show{display:flex;}
+.edit-box{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:420px;max-height:85vh;overflow-y:auto;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="icon">🏫</div>
+      <h1>GSRM Teacher Portal</h1>
+      <p>GSRM School, Taranagar</p>
+    </div>
+    <span class="lbl">Teacher ID</span>
+    <input class="inp" type="text" id="loginId" placeholder="Enter your ID" autocomplete="off">
+    <span class="lbl">Password</span>
+    <input class="inp" type="password" id="loginPass" placeholder="Enter password">
+    <button class="btn-login" onclick="doLogin()">🔐 Login</button>
+    <div class="err" id="loginError">❌ Invalid ID or Password!</div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="edit-modal" id="editModal">
+  <div class="edit-box">
+    <div style="font-size:15px;font-weight:800;color:var(--primary);margin-bottom:14px;">✏️ Edit Student</div>
+    <input type="hidden" id="editId">
+    <div class="fg"><label>Name</label><input type="text" id="editName"></div>
+    <div class="fg"><label>Class</label><select id="editCls" onchange="renderEditSubs()"></select></div>
+    <div id="editSubArea"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn bp" style="flex:1;" onclick="saveEdit()">✅ Save</button>
+      <button class="btn bo" style="flex:1;" onclick="closeEdit()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none;">
+<div class="header">
+  <span style="font-size:20px;">👨‍🏫</span>
+  <div style="flex:1;"><h1>GSRM Teacher Portal</h1><div style="font-size:11px;opacity:0.8;" id="hTeacher"></div></div>
+  <button class="btn-out" onclick="doLogout()">Logout</button>
+</div>
+<div class="tabs" id="mainTabs"></div>
+
+<!-- STUDENTS TAB (Admin only) -->
+<div id="tab-students" class="tab-content">
+<div class="container">
+  <div class="card">
+    <div class="ct">➕ Add Students</div>
+    <div class="fg"><label>Class</label><select id="addCls" onchange="onAddClsChange()"></select></div>
+    <div id="optArea" style="display:none;">
+      <div class="fg">
+        <label id="optLabel">Optional Subject — Select one per student batch</label>
+        <div class="opt-btns" id="optBtns"></div>
+      </div>
+    </div>
+    <div class="fg"><label>Student Names — One name per line</label>
+      <textarea id="bulkNames" placeholder="Aaina&#10;Anita Kanwar&#10;Anju Kanwar&#10;..."></textarea>
+    </div>
+    <button class="btn bp bfl" onclick="addBulk()">➕ Add All Students</button>
+    <div id="addResult" style="margin-top:10px;display:none;"></div>
+  </div>
+  <div class="card">
+    <div class="sh">
+      <div class="ct" style="margin:0;">👥 Student List <span id="syncBadge" style="font-size:11px;color:var(--green);margin-left:6px;font-weight:700;"></span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <select id="filterCls" onchange="onFilterClsChange()" style="width:140px;"></select>
+        <select id="filterSub" onchange="renderStudents()" style="width:140px;"></select>
+      </div>
+    </div>
+    <div id="studentList"><div class="empty">⏳ Loading...</div></div>
+  </div>
+</div>
+</div>
+
+<!-- UNIT TEST -->
+<div id="tab-unitTest" class="tab-content">
+<div class="container">
+  <div class="card">
+    <div class="ct">📝 Unit Test Marks</div>
+    <div class="row">
+      <div class="fg"><label>Class</label><select id="utCls" onchange="onClsChange('ut')"></select></div>
+      <div class="fg"><label>Subject</label><select id="utSub" onchange="loadMarks('ut')"></select></div>
+    </div>
+    <div class="row">
+      <div class="fg"><label>Max Marks (M.M.)</label><input type="number" id="utMM" placeholder="e.g. 15"></div>
+      <div class="fg"><label>Test Date</label><input type="date" id="utDate"></div>
+    </div>
+    <div class="fg"><label>Test Number</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <select id="utNumSelect" onchange="utNumChange()" style="flex:1;"><option>1st</option><option>2nd</option><option>3rd</option><option>4th</option><option>5th</option><option>6th</option><option>7th</option><option>8th</option><option>9th</option><option>10th</option><option value="custom">Custom (Type below)...</option></select>
+        <input type="text" id="utNumCustom" placeholder="e.g. 11th" style="flex:1;display:none;">
+      </div>
+    </div>
+  </div>
+  <div class="card" id="utMC" style="display:none;">
+    <div class="ct">✏️ Enter Marks <span style="font-size:11px;color:var(--muted);font-weight:400;">(A = Absent)</span></div>
+    <div id="utML"></div>
+    <button class="btn bp bfl" onclick="genUT()">✅ Generate Message</button>
+  </div>
+  <div class="card" id="utMsg" style="display:none;">
+    <div class="ct">💬 WhatsApp Message</div>
+    <div class="mp" id="utPrev"></div>
+    <div class="ma"><a id="utWA" href="#" target="_blank" class="btn bwa">📱 Open WhatsApp</a><button class="btn bo" onclick="copyMsg('utPrev')">📋 Copy</button></div>
+  </div>
+</div>
+</div>
+
+<!-- MONTHLY TEST -->
+<div id="tab-monthlyTest" class="tab-content">
+<div class="container">
+  <div class="card">
+    <div class="ct">📊 Monthly Test (Cumulative)</div>
+    <div class="row">
+      <div class="fg"><label>Class</label><select id="mtCls" onchange="onClsChange('mt')"></select></div>
+      <div class="fg"><label>Subject</label><select id="mtSub" onchange="loadMarks('mt')"></select></div>
+    </div>
+    <div class="row">
+      <div class="fg"><label>Total Marks (M.M.)</label><input type="number" id="mtTotal" placeholder="e.g. 120"></div>
+      <div class="fg"><label>Month</label>
+        <select id="mtMonth"><option>January</option><option>February</option><option>March</option><option>April</option><option>May</option><option>June</option><option>July</option><option>August</option><option>September</option><option>October</option><option>November</option><option>December</option></select>
+      </div>
+    </div>
+    <div class="fg"><label>Total Number of Tests</label><input type="number" id="mtTests" placeholder="e.g. 3"></div>
+  </div>
+  <div class="card" id="mtMC" style="display:none;">
+    <div class="ct">✏️ Enter Marks Obtained <span style="font-size:11px;color:var(--muted);font-weight:400;">(55 → auto 55/120)</span></div>
+    <div id="mtML"></div>
+    <button class="btn bp bfl" onclick="genMT()">✅ Generate Message</button>
+  </div>
+  <div class="card" id="mtMsg" style="display:none;">
+    <div class="ct">💬 WhatsApp Message</div>
+    <div class="mp" id="mtPrev"></div>
+    <div class="ma"><a id="mtWA" href="#" target="_blank" class="btn bwa">📱 Open WhatsApp</a><button class="btn bo" onclick="copyMsg('mtPrev')">📋 Copy</button></div>
+  </div>
+</div>
+</div>
+
+<!-- HOMEWORK -->
+<div id="tab-homework" class="tab-content">
+<div class="container">
+  <div class="card">
+    <div class="ct">📚 Homework Alert</div>
+    <div class="row">
+      <div class="fg"><label>Class</label><select id="hwCls" onchange="onClsChange('hw')"></select></div>
+      <div class="fg"><label>Subject</label><select id="hwSub" onchange="loadHW()"></select></div>
+    </div>
+    <div class="fg"><label>Chapter / Topic</label><input type="text" id="hwChap" placeholder="e.g. Chapter 3"></div>
+  </div>
+  <div class="card" id="hwLC" style="display:none;">
+    <div class="ct">❌ Select Students Who Did NOT Complete Homework</div>
+    <div id="hwSL"></div>
+    <button class="btn bp bfl" onclick="genHW()">✅ Generate Message</button>
+  </div>
+  <div class="card" id="hwMsg" style="display:none;">
+    <div class="ct">💬 WhatsApp Message</div>
+    <div class="mp" id="hwPrev"></div>
+    <div class="ma"><a id="hwWA" href="#" target="_blank" class="btn bwa">📱 Open WhatsApp</a><button class="btn bo" onclick="copyMsg('hwPrev')">📋 Copy</button></div>
+  </div>
+</div>
+</div>
+
+<!-- NOTICE -->
+<div id="tab-notice" class="tab-content">
+<div class="container">
+  <div class="card">
+    <div class="ct">📢 Test Notice</div>
+    <div class="row">
+      <div class="fg"><label>Class</label><select id="tnCls" onchange="onClsChange('tn')"></select></div>
+      <div class="fg"><label>Subject</label><select id="tnSub"></select></div>
+    </div>
+    <div class="row">
+      <div class="fg"><label>Test Date</label><input type="date" id="tnDate"></div>
+      <div class="fg"><label>Test Type</label>
+        <select id="tnType"><option>Unit Test</option><option>Monthly Test</option><option>Half Yearly</option><option>Annual Exam</option></select>
+      </div>
+    </div>
+    <div class="fg"><label>Syllabus</label><input type="text" id="tnSyl" placeholder="e.g. Chapter 2, 3"></div>
+    <button class="btn bp bfl" onclick="genNotice()">✅ Generate Message</button>
+  </div>
+  <div class="card" id="tnMsg" style="display:none;">
+    <div class="ct">💬 WhatsApp Message</div>
+    <div class="mp" id="tnPrev"></div>
+    <div class="ma"><a id="tnWA" href="#" target="_blank" class="btn bwa">📱 Open WhatsApp</a><button class="btn bo" onclick="copyMsg('tnPrev')">📋 Copy</button></div>
+  </div>
+</div>
+</div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────
+const TEACHERS = {'teacher1':'gsrm2024','teacher2':'gsrm2024','teacher3':'gsrm2024','teacher4':'gsrm2024','teacher5':'gsrm2024','admin':'gsrm@admin'};
+const SCHOOL = 'GSRM School, Taranagar';
+const PHONE = '📞 +91 8696235387';
+
+// Compulsory subjects per class
+const COMPULSORY = {
+  '1st':['Hindi','English','Maths','EVS'],
+  '2nd':['Hindi','English','Maths','EVS'],
+  '3rd':['Hindi','English','Maths','EVS'],
+  '4th':['Hindi','English','Maths','EVS'],
+  '5th':['Hindi','English','Maths','EVS'],
+  '6th':['Hindi','English','Maths','Science','Social Science','Sanskrit'],
+  '7th':['Hindi','English','Maths','Science','Social Science','Sanskrit'],
+  '8th':['Hindi','English','Maths','Science','Social Science','Sanskrit'],
+  '9th':['Hindi','English','Maths','Science','Social Science','Sanskrit'],
+  '10th':['Hindi','English','Maths','Science','Social Science','Sanskrit'],
+  '11th Science':['Hindi','English','Physics','Chemistry'],
+  '11th Arts':['Hindi','English','Geography','Hindi Literature'],
+  '12th Science':['Hindi','English','Physics','Chemistry'],
+  '12th Arts':['Hindi','English','Geography','Hindi Literature'],
+};
+
+// Optional - student picks ONE
+const OPTIONAL = {
+  '11th Science':['Maths','Biology'],
+  '12th Science':['Maths','Biology'],
+  '11th Arts':['Drawing','Political Science'],
+  '12th Arts':['Drawing','Political Science'],
+};
+
+const CLASSES = Object.keys(COMPULSORY);
+
+// All subjects for a class (compulsory + optional)
+function allSubjects(cls){ return [...(COMPULSORY[cls]||[]),...(OPTIONAL[cls]||[])]; }
+
+// Firebase
+firebase.initializeApp({
+  apiKey:"AIzaSyAQXntbymEadxTJiwzdilwVqUTtEpklSj0",
+  authDomain:"gsrm-suits.firebaseapp.com",
+  projectId:"gsrm-suits",
+  storageBucket:"gsrm-suits.firebasestorage.app",
+  messagingSenderId:"967726400472",
+  appId:"1:967726400472:web:d07136f6eacebef3f4a8ad"
+});
+const db = firebase.firestore();
+
+let students = [];
+let currentTeacher = sessionStorage.getItem('gsrm_t') || null;
+let isAdmin = false;
+let selectedOptional = ''; // tracks selected optional subject in add form
+
+// ── LOGIN ─────────────────────────────────────────────────────
+function doLogin(){
+  const id=document.getElementById('loginId').value.trim().toLowerCase();
+  const pw=document.getElementById('loginPass').value.trim();
+  if(TEACHERS[id]&&TEACHERS[id]===pw){
+    currentTeacher=id; isAdmin=(id==='admin');
+    sessionStorage.setItem('gsrm_t',id); showApp();
+  } else { document.getElementById('loginError').style.display='block'; }
+}
+function doLogout(){
+  if(!confirm('Logout?')) return;
+  currentTeacher=null; isAdmin=false; sessionStorage.removeItem('gsrm_t');
+  document.getElementById('mainApp').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('loginId').value='';
+  document.getElementById('loginPass').value='';
+}
+document.getElementById('loginPass').onkeydown=e=>{if(e.key==='Enter')doLogin();};
+document.getElementById('loginId').onkeydown=e=>{if(e.key==='Enter')doLogin();};
+
+// ── SHOW APP ──────────────────────────────────────────────────
+function showApp(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('mainApp').style.display='block';
+  document.getElementById('hTeacher').textContent='👤 '+currentTeacher.toUpperCase()+(isAdmin?' (Admin)':'');
+  const t=document.getElementById('mainTabs');
+  if(isAdmin){
+    t.innerHTML=`<div class="tab active" onclick="switchTab('students')">👥 Students</div>
+    <div class="tab" onclick="switchTab('unitTest')">📝 Unit Test</div>
+    <div class="tab" onclick="switchTab('monthlyTest')">📊 Monthly Test</div>
+    <div class="tab" onclick="switchTab('homework')">📚 Homework</div>
+    <div class="tab" onclick="switchTab('notice')">📢 Notice</div>`;
+    document.getElementById('tab-students').classList.add('active');
+  } else {
+    t.innerHTML=`<div class="tab active" onclick="switchTab('unitTest')">📝 Unit Test</div>
+    <div class="tab" onclick="switchTab('monthlyTest')">📊 Monthly Test</div>
+    <div class="tab" onclick="switchTab('homework')">📚 Homework</div>
+    <div class="tab" onclick="switchTab('notice')">📢 Notice</div>`;
+    document.getElementById('tab-unitTest').classList.add('active');
+  }
+  populateDDs();
+  loadStudents();
+}
+
+// ── DROPDOWNS ─────────────────────────────────────────────────
+function populateDDs(){
+  ['addCls','filterCls','utCls','mtCls','hwCls','tnCls'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    const isFilter=id==='filterCls';
+    el.innerHTML=(isFilter?'<option value="">All Classes</option>':'<option value="">-- Select Class --</option>')+CLASSES.map(c=>`<option>${c}</option>`).join('');
+  });
+  const ec=document.getElementById('editCls');
+  if(ec) ec.innerHTML='<option value="">-- Select --</option>'+CLASSES.map(c=>`<option>${c}</option>`).join('');
+  document.getElementById('filterSub').innerHTML='<option value="">All Subjects</option>';
+}
+
+function fillSubDD(ddId, cls){
+  const el=document.getElementById(ddId);if(!el)return;
+  const subs=allSubjects(cls);
+  el.innerHTML='<option value="">-- Select Subject --</option>'+subs.map(s=>`<option>${s}</option>`).join('');
+}
+
+function onClsChange(prefix){
+  fillSubDD(prefix+'Sub', document.getElementById(prefix+'Cls').value);
+  ['MC','Msg','LC','msg'].forEach(s=>{ const el=document.getElementById(prefix+s);if(el)el.style.display='none'; });
+}
+
+// ── OPTIONAL SUBJECT BUTTONS ──────────────────────────────────
+function onAddClsChange(){
+  const cls=document.getElementById('addCls').value;
+  selectedOptional='';
+  const area=document.getElementById('optArea');
+  const btns=document.getElementById('optBtns');
+  if(OPTIONAL[cls]){
+    area.style.display='block';
+    btns.innerHTML=OPTIONAL[cls].map(s=>`<button class="opt-btn" onclick="selectOpt(this,'${s}')">${s}</button>`).join('');
+  } else {
+    area.style.display='none';
+    btns.innerHTML='';
+  }
+}
+
+function selectOpt(el, val){
+  document.querySelectorAll('.opt-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedOptional=val;
+}
+
+// ── LOAD STUDENTS ─────────────────────────────────────────────
+async function loadStudents(){
+  const badge=document.getElementById('syncBadge');
+  if(badge) badge.textContent='🔄 Syncing...';
+  try{
+    const snap=await db.collection('students').orderBy('class').orderBy('name').get();
+    students=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(badge) badge.textContent='✅ '+students.length+' students';
+    if(isAdmin){ renderStudents(); updateFilterSubs(); }
+  }catch(e){
+    if(badge) badge.textContent='❌ Error';
+    console.error(e);
+  }
+}
+
+function updateFilterSubs(){
+  const cls=document.getElementById('filterCls').value;
+  const list=cls?students.filter(s=>s.class===cls):students;
+  const subs=[...new Set(list.flatMap(s=>s.subjects||[]))].sort();
+  document.getElementById('filterSub').innerHTML='<option value="">All Subjects</option>'+subs.map(s=>`<option>${s}</option>`).join('');
+}
+
+function onFilterClsChange(){ updateFilterSubs(); renderStudents(); }
+
+// ── ADD BULK ──────────────────────────────────────────────────
+async function addBulk(){
+  const cls=document.getElementById('addCls').value;
+  const raw=document.getElementById('bulkNames').value.trim();
+  if(!cls){alert('Please select a class!');return;}
+  if(!raw){alert('Please enter student names!');return;}
+
+  // Build subjects list
+  let subjects=[...COMPULSORY[cls]];
+  if(OPTIONAL[cls]){
+    if(!selectedOptional){alert('Please select optional subject ('+OPTIONAL[cls].join(' or ')+')!');return;}
+    subjects.push(selectedOptional);
+  }
+
+  const names=raw.split('\n').map(n=>n.trim()).filter(n=>n);
+  const existing=students.filter(s=>s.class===cls).map(s=>s.name.toLowerCase());
+  const toAdd=names.filter(n=>!existing.includes(n.toLowerCase()));
+  const skipped=names.length-toAdd.length;
+  if(!toAdd.length){alert('All students already exist in this class!');return;}
+  if(!confirm('Add '+toAdd.length+' students to Class '+cls+'?\nSubjects: '+subjects.join(', '))) return;
+
+  try{
+    for(const name of toAdd){
+      await db.collection('students').add({name,class:cls,subjects,addedBy:currentTeacher});
+    }
+    document.getElementById('bulkNames').value='';
+    selectedOptional='';
+    document.querySelectorAll('.opt-btn').forEach(b=>b.classList.remove('selected'));
+    await loadStudents();
+    const res=document.getElementById('addResult');
+    res.style.display='block';
+    res.innerHTML='<div style="background:#d1fae5;color:#065f46;padding:10px 14px;border-radius:10px;font-weight:700;">✅ '+toAdd.length+' students added!'+(skipped?' ('+skipped+' skipped)':'')+'</div>';
+    setTimeout(()=>res.style.display='none',4000);
+  }catch(e){alert('Error: '+e.message);}
+}
+
+// ── RENDER STUDENTS ───────────────────────────────────────────
+function renderStudents(){
+  if(!isAdmin)return;
+  const fc=document.getElementById('filterCls').value;
+  const fs=document.getElementById('filterSub').value;
+  let list=fc?students.filter(s=>s.class===fc):students;
+  if(fs) list=list.filter(s=>s.subjects&&s.subjects.includes(fs));
+  const el=document.getElementById('studentList');
+  if(!list.length){el.innerHTML='<div class="empty">📭 No students found.</div>';return;}
+  const grp={};
+  list.forEach(s=>{if(!grp[s.class])grp[s.class]=[];grp[s.class].push(s);});
+  el.innerHTML=Object.entries(grp).map(([cls,sts])=>`
+    <div style="margin-bottom:16px;">
+      <div class="grp-hd"><span>📚 Class ${cls}</span><span class="chip">Regular Students: ${sts.length}</span></div>
+      ${sts.map((s,i)=>`
+        <div class="si">
+          <div class="sn">${i+1}</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;">${s.name}</div>
+            <div style="font-size:11px;color:var(--muted);">${(s.subjects||[]).join(' • ')}</div>
+          </div>
+          <button class="btn bg bsm" onclick="openEdit('${s.id}')">✏️</button>
+          <button class="btn br bsm" onclick="delStudent('${s.id}','${s.name.replace(/'/g,"\\'")}')">🗑️</button>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+// ── EDIT ──────────────────────────────────────────────────────
+function openEdit(id){
+  const s=students.find(x=>x.id===id);if(!s)return;
+  document.getElementById('editId').value=id;
+  document.getElementById('editName').value=s.name;
+  document.getElementById('editCls').value=s.class;
+  renderEditSubs(s.subjects||[]);
+  document.getElementById('editModal').classList.add('show');
+}
+function renderEditSubs(selected){
+  const cls=document.getElementById('editCls').value;
+  const subs=allSubjects(cls);
+  const sel=selected||[];
+  document.getElementById('editSubArea').innerHTML=`<div class="fg"><label>Subjects</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
+    ${subs.map(s=>`<label style="display:flex;align-items:center;gap:4px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px;font-weight:600;">
+      <input type="checkbox" name="esub" value="${s}" ${sel.includes(s)?'checked':''}> ${s}</label>`).join('')}
+  </div></div>`;
+}
+function closeEdit(){ document.getElementById('editModal').classList.remove('show'); }
+async function saveEdit(){
+  const id=document.getElementById('editId').value;
+  const name=document.getElementById('editName').value.trim();
+  const cls=document.getElementById('editCls').value;
+  const subjects=Array.from(document.querySelectorAll('input[name=esub]:checked')).map(i=>i.value);
+  if(!name||!cls||!subjects.length){alert('Please fill all fields!');return;}
+  try{
+    await db.collection('students').doc(id).update({name,class:cls,subjects});
+    closeEdit(); await loadStudents(); alert('✅ Student updated!');
+  }catch(e){alert('Error: '+e.message);}
+}
+async function delStudent(id,name){
+  if(!confirm('Delete "'+name+'"?')) return;
+  try{await db.collection('students').doc(id).delete();await loadStudents();}
+  catch(e){alert('Error: '+e.message);}
+}
+
+// ── TABS ──────────────────────────────────────────────────────
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>{ if(t.getAttribute('onclick').includes("'"+tab+"'")) t.classList.add('active'); });
+  document.getElementById('tab-'+tab).classList.add('active');
+}
+
+// ── GET STUDENTS FOR CLASS+SUBJECT ────────────────────────────
+function getStudents(cls,sub){
+  if(!cls||!sub) return [];
+  return students.filter(s=>s.class===cls&&s.subjects&&s.subjects.includes(sub));
+}
+
+// ── LOAD MARKS ────────────────────────────────────────────────
+function loadMarks(type){
+  const cls=document.getElementById(type+'Cls').value;
+  const sub=document.getElementById(type+'Sub').value;
+  if(!cls||!sub)return;
+  const list=getStudents(cls,sub);
+  if(!list.length){alert('No students found for Class '+cls+' - '+sub);return;}
+  if(type==='ut'){
+    document.getElementById('utMC').style.display='block';
+    document.getElementById('utML').innerHTML=list.map((s,i)=>`
+      <div class="mi"><div style="width:24px;font-size:11px;color:var(--muted);font-weight:700;">${i+1}.</div>
+      <div style="flex:1;font-size:13px;font-weight:600;">${s.name}</div>
+      <input type="text" id="ut_${s.id}" placeholder="A/0" style="width:65px;"></div>`).join('');
+  } else {
+    const total=document.getElementById('mtTotal').value;
+    document.getElementById('mtMC').style.display='block';
+    document.getElementById('mtML').innerHTML=list.map((s,i)=>`
+      <div class="mi"><div style="width:24px;font-size:11px;color:var(--muted);font-weight:700;">${i+1}.</div>
+      <div style="flex:1;font-size:13px;font-weight:600;">${s.name}</div>
+      <input type="number" id="mt_${s.id}" placeholder="55" style="width:65px;">
+      ${total?`<span style="font-size:11px;color:var(--muted);">/${total}</span>`:''}</div>`).join('');
+  }
+}
+
+function loadHW(){
+  const cls=document.getElementById('hwCls').value;
+  const sub=document.getElementById('hwSub').value;
+  if(!cls||!sub)return;
+  const list=getStudents(cls,sub);
+  if(!list.length){alert('No students found for this class & subject.');return;}
+  document.getElementById('hwLC').style.display='block';
+  document.getElementById('hwSL').innerHTML=list.map((s,i)=>`
+    <div class="hi" onclick="tHW(this)">
+      <input type="checkbox" style="width:18px;height:18px;pointer-events:none;">
+      <div>${i+1}. ${s.name}</div>
+    </div>`).join('');
+}
+function tHW(el){
+  const cb=el.querySelector('input');cb.checked=!cb.checked;
+  el.classList.toggle('nd',cb.checked);
+}
+
+// ── GENERATE MESSAGES ─────────────────────────────────────────
+function utNumChange(){
+  const v=document.getElementById('utNumSelect').value;
+  document.getElementById('utNumCustom').style.display=v==='custom'?'block':'none';
+}
+function genUT(){
+  const cls=document.getElementById('utCls').value,sub=document.getElementById('utSub').value;
+  const mm=document.getElementById('utMM').value,date=document.getElementById('utDate').value;
+  const sel=document.getElementById('utNumSelect').value;const num=sel==='custom'?document.getElementById('utNumCustom').value.trim():sel;
+  if(!cls||!sub||!mm||!date){alert('Please fill all fields!');return;}
+  const list=getStudents(cls,sub);
+  const ds=new Date(date).toLocaleDateString('en-IN',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const marks=list.map((s,i)=>({name:s.name,val:document.getElementById('ut_'+s.id)?.value.trim()||'-',i:i+1}));
+  const nums=marks.filter(m=>m.val!=='A'&&m.val!=='-'&&m.val!==''&&!isNaN(m.val)).map(m=>Number(m.val));
+  const top=nums.length?Math.max(...nums):null;
+  const lines=marks.map(m=>{
+    const isTop=top!==null&&!isNaN(m.val)&&m.val!==''&&Number(m.val)===top;
+    const line=m.i+'. '+m.name+' = '+m.val;
+    return isTop?'*'+line+'*':line;
+  }).join('\n');
+  const msg='*Class: '+cls+'*\n*Subject: '+sub+'*\n*Max Marks (M.M.): '+mm+'*\n*Test Date: '+ds+'*\n*Monthly Test Number: '+num+'*\n\n'+lines+'\n\n— '+SCHOOL+'\n'+PHONE;
+  showMsg('ut',msg);
+}
+
+function genMT(){
+  const cls=document.getElementById('mtCls').value,sub=document.getElementById('mtSub').value;
+  const total=document.getElementById('mtTotal').value,month=document.getElementById('mtMonth').value;
+  const tests=document.getElementById('mtTests').value;
+  if(!cls||!sub||!total||!tests){alert('Please fill all fields!');return;}
+  const list=getStudents(cls,sub);
+  const lines=list.map((s,i)=>{
+    const val=document.getElementById('mt_'+s.id)?.value.trim()||'';
+    return (i+1)+'. '+s.name+' = '+(val?val+'/'+total:'A');
+  }).join('\n');
+  const msg='*Class: '+cls+'*\n*Subject: '+sub+'*\n*Total Marks: '+total+'*\n*Month: '+month+'*\n*Total Number of Tests: '+tests+'*\n\n'+lines+'\n\n— '+SCHOOL+'\n'+PHONE;
+  showMsg('mt',msg);
+}
+
+function genHW(){
+  const sub=document.getElementById('hwSub').value,chap=document.getElementById('hwChap').value.trim();
+  if(!sub||!chap){alert('Please fill Subject and Chapter!');return;}
+  const checked=document.querySelectorAll('#hwSL .hi input:checked');
+  if(!checked.length){alert('Please select at least one student!');return;}
+  const names=Array.from(checked).map((cb,i)=>{
+    const txt=cb.parentElement.querySelector('div').textContent.replace(/^\d+\.\s/,'');
+    return (i+1)+'. '+txt;
+  }).join('\n');
+  const msg='सम्माननीय अभिभावकों,\n\nयह अवगत कराया जाता है कि निम्नलिखित विद्यार्थियों ने आज '+sub+' का गृहकार्य ('+chap+') पूर्ण नहीं किया है:\n\n'+names+'\n\nहम आपसे विनम्र अनुरोध करते हैं कि कृपया इस विषय पर ध्यान दें और सुनिश्चित करें कि भविष्य में गृहकार्य समय पर पूर्ण हो, ताकि बच्चे की सीखने की प्रक्रिया सुचारू रूप से चल सके।\n\n— '+SCHOOL+'\n'+PHONE;
+  showMsg('hw',msg);
+}
+
+function genNotice(){
+  const cls=document.getElementById('tnCls').value,sub=document.getElementById('tnSub').value;
+  const date=document.getElementById('tnDate').value,type=document.getElementById('tnType').value;
+  const syl=document.getElementById('tnSyl').value.trim();
+  if(!cls||!sub||!date||!syl){alert('Please fill all fields!');return;}
+  const ds=new Date(date).toLocaleDateString('en-IN',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const msg='📢 '+SCHOOL+' – टेस्ट सूचना\n\nसूचित किया जाता है कि कक्षा '+cls+' का '+sub+' विषय का '+type+' आयोजित किया जाएगा।\n\n🔹 *विषय (Subject):* '+sub+'\n🔹 *दिनांक (Date):* '+ds+'\n🔹 *परीक्षा प्रकार:* '+type+'\n🔹 *पाठ्यक्रम (Syllabus):* '+syl+'\n\n📚 कृपया विद्यार्थी को पूर्ण तैयारी के साथ विद्यालय भेजें।\n\n— '+SCHOOL+'\n'+PHONE;
+  showMsg('tn',msg);
+}
+
+function showMsg(prefix,msg){
+  document.getElementById(prefix+'Prev').textContent=msg;
+  document.getElementById(prefix+'Msg').style.display='block';
+  document.getElementById(prefix+'WA').href='https://wa.me/?text='+encodeURIComponent(msg);
+  document.getElementById(prefix+'Msg').scrollIntoView({behavior:'smooth'});
+}
+
+function copyMsg(id){
+  const text=document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(()=>alert('✅ Message copied!')).catch(()=>{
+    const ta=document.createElement('textarea');
+    ta.value=text;document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');document.body.removeChild(ta);
+    alert('✅ Message copied!');
+  });
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+if(currentTeacher&&TEACHERS[currentTeacher]){isAdmin=(currentTeacher==='admin');showApp();}
+</script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
