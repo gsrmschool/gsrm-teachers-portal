@@ -264,6 +264,58 @@ textarea{resize:vertical;min-height:100px;}
 </div>
 </div>
 
+<!-- SCHEDULE TAB -->
+<div id="tab-schedule" class="tab-content">
+<div class="container">
+
+  <!-- Add Schedule -->
+  <div class="card">
+    <div class="ct">➕ Test Schedule Add Karein</div>
+    <div class="row">
+      <div class="fg"><label>Date</label><input type="date" id="schDate"></div>
+      <div class="fg"><label>Class</label><select id="schClass" onchange="onSchClsChange()"></select></div>
+    </div>
+    <div class="row">
+      <div class="fg"><label>Subject</label><select id="schSub"></select></div>
+      <div class="fg"><label>Test Type</label>
+        <select id="schType">
+          <option>Unit Test</option>
+          <option>Monthly Test</option>
+          <option>Half Yearly</option>
+          <option>Annual Exam</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Chapter / Syllabus</label>
+      <input type="text" id="schChapter" placeholder="e.g. Chapter 2, 3">
+    </div>
+    <div class="fg"><label>Note (Optional)</label>
+      <input type="text" id="schNote" placeholder="Koi extra note...">
+    </div>
+    <button class="btn bp bfl" onclick="addSchedule()">📅 Schedule Add Karein</button>
+    <div id="schResult" style="display:none;margin-top:10px;"></div>
+  </div>
+
+  <!-- Filter -->
+  <div class="card">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+      <select id="schFilterClass" onchange="renderSchedule()" style="flex:1;">
+        <option value="">All Classes</option>
+      </select>
+      <select id="schFilterType" onchange="renderSchedule()" style="flex:1;">
+        <option value="">All Test Types</option>
+        <option>Unit Test</option>
+        <option>Monthly Test</option>
+        <option>Half Yearly</option>
+        <option>Annual Exam</option>
+      </select>
+    </div>
+    <div id="scheduleList"><div class="empty">⏳ Loading...</div></div>
+  </div>
+
+</div>
+</div>
+
 <script>
 // ── CONFIG ────────────────────────────────────────────────────
 const TEACHERS = {'teacher1':'gsrm2024','teacher2':'gsrm2024','teacher3':'gsrm2024','teacher4':'gsrm2024','teacher5':'gsrm2024','admin':'gsrm@admin'};
@@ -348,13 +400,15 @@ function showApp(){
     <div class="tab" onclick="switchTab('unitTest')">📝 Unit Test</div>
     <div class="tab" onclick="switchTab('monthlyTest')">📊 Monthly Test</div>
     <div class="tab" onclick="switchTab('homework')">📚 Homework</div>
-    <div class="tab" onclick="switchTab('notice')">📢 Notice</div>`;
+    <div class="tab" onclick="switchTab('notice')">📢 Notice</div>
+    <div class="tab" onclick="switchTab('schedule')">📅 Schedule</div>`;
     document.getElementById('tab-students').classList.add('active');
   } else {
     t.innerHTML=`<div class="tab active" onclick="switchTab('unitTest')">📝 Unit Test</div>
     <div class="tab" onclick="switchTab('monthlyTest')">📊 Monthly Test</div>
     <div class="tab" onclick="switchTab('homework')">📚 Homework</div>
-    <div class="tab" onclick="switchTab('notice')">📢 Notice</div>`;
+    <div class="tab" onclick="switchTab('notice')">📢 Notice</div>
+    <div class="tab" onclick="switchTab('schedule')">📅 Schedule</div>`;
     document.getElementById('tab-unitTest').classList.add('active');
   }
   populateDDs();
@@ -363,7 +417,7 @@ function showApp(){
 
 // ── DROPDOWNS ─────────────────────────────────────────────────
 function populateDDs(){
-  ['addCls','filterCls','utCls','mtCls','hwCls','tnCls'].forEach(id=>{
+  ['addCls','filterCls','utCls','mtCls','hwCls','tnCls','schClass','schFilterClass'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
     const isFilter=id==='filterCls';
     el.innerHTML=(isFilter?'<option value="">All Classes</option>':'<option value="">-- Select Class --</option>')+CLASSES.map(c=>`<option>${c}</option>`).join('');
@@ -379,6 +433,9 @@ function fillSubDD(ddId, cls){
   el.innerHTML='<option value="">-- Select Subject --</option>'+subs.map(s=>`<option>${s}</option>`).join('');
 }
 
+function onSchClsChange(){
+  fillSubDD('schSub', document.getElementById('schClass').value);
+}
 function onClsChange(prefix){
   fillSubDD(prefix+'Sub', document.getElementById(prefix+'Cls').value);
   ['MC','Msg','LC','msg'].forEach(s=>{ const el=document.getElementById(prefix+s);if(el)el.style.display='none'; });
@@ -534,6 +591,7 @@ function switchTab(tab){
   document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>{ if(t.getAttribute('onclick').includes("'"+tab+"'")) t.classList.add('active'); });
   document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='schedule') renderSchedule();
 }
 
 // ── GET STUDENTS FOR CLASS+SUBJECT ────────────────────────────
@@ -660,6 +718,98 @@ function copyMsg(id){
     document.execCommand('copy');document.body.removeChild(ta);
     alert('✅ Message copied!');
   });
+}
+
+// ── SCHEDULE FUNCTIONS ───────────────────────────────────────
+async function addSchedule(){
+  const date=document.getElementById('schDate').value;
+  const cls=document.getElementById('schClass').value;
+  const sub=document.getElementById('schSub').value;
+  const type=document.getElementById('schType').value;
+  const chapter=document.getElementById('schChapter').value.trim();
+  const note=document.getElementById('schNote').value.trim();
+  if(!date||!cls||!sub){alert('Date, Class aur Subject zaruri hai!');return;}
+
+  try{
+    await db.collection('test_schedule').add({
+      date,class:cls,subject:sub,type,chapter,note,
+      addedBy:currentTeacher,
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    document.getElementById('schDate').value='';
+    document.getElementById('schChapter').value='';
+    document.getElementById('schNote').value='';
+    const r=document.getElementById('schResult');
+    r.style.display='block';
+    r.innerHTML='<div style="background:#d1fae5;color:#065f46;padding:10px 14px;border-radius:10px;font-weight:700;">✅ Schedule add ho gaya!</div>';
+    setTimeout(()=>r.style.display='none',3000);
+    renderSchedule();
+  }catch(e){alert('Error: '+e.message);}
+}
+
+async function renderSchedule(){
+  const el=document.getElementById('scheduleList');
+  if(!el) return;
+  el.innerHTML='<div class="empty">⏳ Loading...</div>';
+  const fc=document.getElementById('schFilterClass').value;
+  const ft=document.getElementById('schFilterType').value;
+  try{
+    let q=db.collection('test_schedule').orderBy('date','asc');
+    const snap=await q.get();
+    let items=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(fc) items=items.filter(i=>i.class===fc);
+    if(ft) items=items.filter(i=>i.type===ft);
+    if(!items.length){el.innerHTML='<div class="empty">📭 Koi schedule nahi mila.</div>';return;}
+
+    // Group by date
+    const grouped={};
+    items.forEach(item=>{
+      if(!grouped[item.date]) grouped[item.date]=[];
+      grouped[item.date].push(item);
+    });
+
+    const today=new Date().toISOString().split('T')[0];
+
+    el.innerHTML=Object.entries(grouped).map(([date,tests])=>{
+      const d=new Date(date+'T00:00:00');
+      const dayName=d.toLocaleDateString('hi-IN',{weekday:'long'});
+      const dateStr=d.toLocaleDateString('hi-IN',{day:'2-digit',month:'long',year:'numeric'});
+      const isPast=date<today;
+      const isToday=date===today;
+      const bgColor=isToday?'#fef3c7':isPast?'#f3f4f6':'#eef2ff';
+      const dotColor=tests.length>=3?'#dc2626':tests.length===2?'#d97706':'#1a9e5c';
+
+      return `<div style="margin-bottom:14px;">
+        <div style="background:${bgColor};border-radius:10px;padding:8px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:13px;font-weight:800;color:#1e1e2e;">${dateStr}</div>
+            <div style="font-size:11px;color:#6b7280;">${dayName} ${isToday?'• 📍 Aaj':''}${isPast?'• ✓ Ho gaya':''}</div>
+          </div>
+          <div style="background:${dotColor};color:#fff;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700;">${tests.length} Test${tests.length>1?'s':''}</div>
+        </div>
+        ${tests.map(t=>`
+          <div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:700;">${t.subject} <span style="background:#eef2ff;color:#3b3fce;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700;">${t.type}</span></div>
+              <div style="font-size:12px;color:#6b7280;margin-top:2px;">📚 Class ${t.class}${t.chapter?' | '+t.chapter:''}</div>
+              ${t.note?`<div style="font-size:11px;color:#d97706;margin-top:2px;">📌 ${t.note}</div>`:''}
+              <div style="font-size:11px;color:#9ca3af;margin-top:2px;">👤 Added by: ${t.addedBy||'unknown'}</div>
+            </div>
+            ${(isAdmin||t.addedBy===currentTeacher)?`<button class="btn br bsm" onclick="delSchedule('${t.id}')">🗑️</button>`:''}
+          </div>`).join('')}
+      </div>`;
+    }).join('');
+  }catch(e){
+    el.innerHTML='<div class="empty">❌ Error: '+e.message+'</div>';
+  }
+}
+
+async function delSchedule(id){
+  if(!confirm('Is schedule ko delete karein?'))return;
+  try{
+    await db.collection('test_schedule').doc(id).delete();
+    renderSchedule();
+  }catch(e){alert('Error: '+e.message);}
 }
 
 // ── INIT ──────────────────────────────────────────────────────
