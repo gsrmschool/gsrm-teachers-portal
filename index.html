@@ -795,7 +795,7 @@ async function renderSchedule(){
               ${t.note?`<div style="font-size:11px;color:#d97706;margin-top:2px;">📌 ${t.note}</div>`:''}
               <div style="font-size:11px;color:#9ca3af;margin-top:2px;">👤 Added by: ${t.addedBy||'unknown'}</div>
             </div>
-            ${(isAdmin||t.addedBy===currentTeacher)?`<button class="btn br bsm" onclick="delSchedule('${t.id}')">🗑️</button>`:''}
+            ${isAdmin?`<button class="btn br bsm" onclick="delSchedule('${t.id}')">🗑️</button>`:''}
           </div>`).join('')}
       </div>`;
     }).join('');
