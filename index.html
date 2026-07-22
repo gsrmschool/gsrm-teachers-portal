@@ -268,9 +268,9 @@ textarea{resize:vertical;min-height:100px;}
 <div id="tab-schedule" class="tab-content">
 <div class="container">
 
-  <!-- Add Schedule -->
+  <!-- Add Single Schedule -->
   <div class="card">
-    <div class="ct">➕ Test Schedule Add Karein</div>
+    <div class="ct">➕ Test Add Karein</div>
     <div class="row">
       <div class="fg"><label>Date</label><input type="date" id="schDate"></div>
       <div class="fg"><label>Class</label><select id="schClass" onchange="onSchClsChange()"></select></div>
@@ -283,6 +283,7 @@ textarea{resize:vertical;min-height:100px;}
           <option>Monthly Test</option>
           <option>Half Yearly</option>
           <option>Annual Exam</option>
+          <option>Major Test</option>
         </select>
       </div>
     </div>
@@ -292,12 +293,46 @@ textarea{resize:vertical;min-height:100px;}
     <div class="fg"><label>Note (Optional)</label>
       <input type="text" id="schNote" placeholder="Koi extra note...">
     </div>
-    <button class="btn bp bfl" onclick="addSchedule()">📅 Schedule Add Karein</button>
+    <button class="btn bp bfl" onclick="addSchedule()">📅 Add Test</button>
     <div id="schResult" style="display:none;margin-top:10px;"></div>
   </div>
 
-  <!-- Filter -->
+  <!-- Monthly Schedule Message -->
   <div class="card">
+    <div class="ct">📢 Monthly Schedule Message Generate Karein</div>
+    <div class="row">
+      <div class="fg"><label>Month</label>
+        <select id="schMsgMonth">
+          <option value="01">January</option><option value="02">February</option>
+          <option value="03">March</option><option value="04">April</option>
+          <option value="05">May</option><option value="06">June</option>
+          <option value="07">July</option><option value="08">August</option>
+          <option value="09">September</option><option value="10">October</option>
+          <option value="11">November</option><option value="12">December</option>
+        </select>
+      </div>
+      <div class="fg"><label>Year</label>
+        <input type="number" id="schMsgYear" value="2026" min="2024" max="2030">
+      </div>
+    </div>
+    <div class="fg"><label>Class Filter (Optional)</label>
+      <select id="schMsgClass">
+        <option value="">Sabhi Classes</option>
+      </select>
+    </div>
+    <button class="btn bp bfl" onclick="genScheduleMsg()">💬 Schedule Message Banayein</button>
+    <div id="schMsgPreview" style="display:none;margin-top:12px;">
+      <div style="background:#e8f5e9;border-left:4px solid #25D366;border-radius:10px;padding:14px;font-size:13px;line-height:1.8;white-space:pre-wrap;" id="schMsgText"></div>
+      <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">
+        <a id="schWABtn" href="#" target="_blank" class="btn bwa">📱 WhatsApp par Bhejein</a>
+        <button class="btn bo" onclick="copySchMsg()">📋 Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter & View -->
+  <div class="card">
+    <div class="ct" style="margin-bottom:10px;">📅 Schedule Dekho</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
       <select id="schFilterClass" onchange="renderSchedule()" style="flex:1;">
         <option value="">All Classes</option>
@@ -308,6 +343,7 @@ textarea{resize:vertical;min-height:100px;}
         <option>Monthly Test</option>
         <option>Half Yearly</option>
         <option>Annual Exam</option>
+        <option>Major Test</option>
       </select>
     </div>
     <div id="scheduleList"><div class="empty">⏳ Loading...</div></div>
@@ -413,11 +449,18 @@ function showApp(){
   }
   populateDDs();
   loadStudents();
+  // Set current month as default
+  const now=new Date();
+  const nextMonth=new Date(now.getFullYear(),now.getMonth()+1,1);
+  const mEl=document.getElementById('schMsgMonth');
+  const yEl=document.getElementById('schMsgYear');
+  if(mEl) mEl.value=String(nextMonth.getMonth()+1).padStart(2,'0');
+  if(yEl) yEl.value=nextMonth.getFullYear();
 }
 
 // ── DROPDOWNS ─────────────────────────────────────────────────
 function populateDDs(){
-  ['addCls','filterCls','utCls','mtCls','hwCls','tnCls','schClass','schFilterClass'].forEach(id=>{
+  ['addCls','filterCls','utCls','mtCls','hwCls','tnCls','schClass','schFilterClass','schMsgClass'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
     const isFilter=id==='filterCls';
     el.innerHTML=(isFilter?'<option value="">All Classes</option>':'<option value="">-- Select Class --</option>')+CLASSES.map(c=>`<option>${c}</option>`).join('');
@@ -810,6 +853,78 @@ async function delSchedule(id){
     await db.collection('test_schedule').doc(id).delete();
     renderSchedule();
   }catch(e){alert('Error: '+e.message);}
+}
+
+// ── GENERATE MONTHLY SCHEDULE MESSAGE ────────────────────────
+async function genScheduleMsg(){
+  const month=document.getElementById('schMsgMonth').value;
+  const year=document.getElementById('schMsgYear').value;
+  const cls=document.getElementById('schMsgClass').value;
+
+  const monthNames=['January','February','March','April','May','June',
+    'July','August','September','October','November','December'];
+  const monthName=monthNames[parseInt(month)-1];
+
+  try{
+    const snap=await db.collection('test_schedule').orderBy('date','asc').get();
+    let items=snap.docs.map(d=>({id:d.id,...d.data()}));
+    // Filter by month & year
+    items=items.filter(i=>i.date&&i.date.startsWith(year+'-'+month));
+    if(cls) items=items.filter(i=>i.class===cls);
+    if(!items.length){alert('Is month ka koi schedule nahi mila!');return;}
+
+    // Build message
+    const clsLabel=cls?'Class '+cls:'Sabhi Classes';
+    let msg='📅 *'+monthName+' '+year+' – Test Schedule*
+';
+    msg+='*('+clsLabel+')*
+';
+    msg+='─────────────────────
+
+';
+
+    // Group by date
+    const grouped={};
+    items.forEach(i=>{if(!grouped[i.date])grouped[i.date]=[];grouped[i.date].push(i);});
+
+    Object.entries(grouped).forEach(([date,tests])=>{
+      const d=new Date(date+'T00:00:00');
+      const dayName=d.toLocaleDateString('en-IN',{weekday:'short'});
+      const dateStr=d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+      msg+='🗓️ *'+dateStr+' ('+dayName+')*
+';
+      tests.forEach(t=>{
+        msg+='  📝 '+t.class+' | '+t.subject+' – '+t.type;
+        if(t.chapter) msg+=' | '+t.chapter;
+        msg+='
+';
+      });
+      msg+='
+';
+    });
+
+    msg+='─────────────────────
+';
+    msg+='📚 कृपया सभी विद्यार्थियों को समय पर तैयारी करवाएं।
+
+';
+    msg+='— GSRM School, Taranagar
+📞 +91 8696235387';
+
+    document.getElementById('schMsgText').textContent=msg;
+    document.getElementById('schMsgPreview').style.display='block';
+    document.getElementById('schWABtn').href='https://wa.me/?text='+encodeURIComponent(msg);
+    document.getElementById('schMsgPreview').scrollIntoView({behavior:'smooth'});
+  }catch(e){alert('Error: '+e.message);}
+}
+
+function copySchMsg(){
+  const text=document.getElementById('schMsgText').textContent;
+  navigator.clipboard.writeText(text).then(()=>alert('✅ Copy ho gaya!')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=text;
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');
+    document.body.removeChild(ta);alert('✅ Copy ho gaya!');
+  });
 }
 
 // ── INIT ──────────────────────────────────────────────────────
