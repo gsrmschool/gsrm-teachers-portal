@@ -857,60 +857,39 @@ async function delSchedule(id){
 
 // ── GENERATE MONTHLY SCHEDULE MESSAGE ────────────────────────
 async function genScheduleMsg(){
-  const month=document.getElementById('schMsgMonth').value;
-  const year=document.getElementById('schMsgYear').value;
-  const cls=document.getElementById('schMsgClass').value;
-
-  const monthNames=['January','February','March','April','May','June',
-    'July','August','September','October','November','December'];
-  const monthName=monthNames[parseInt(month)-1];
-
+  var month=document.getElementById('schMsgMonth').value;
+  var year=document.getElementById('schMsgYear').value;
+  var cls=document.getElementById('schMsgClass').value;
+  var monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var monthName=monthNames[parseInt(month)-1];
   try{
-    const snap=await db.collection('test_schedule').orderBy('date','asc').get();
-    let items=snap.docs.map(d=>({id:d.id,...d.data()}));
-    // Filter by month & year
-    items=items.filter(i=>i.date&&i.date.startsWith(year+'-'+month));
-    if(cls) items=items.filter(i=>i.class===cls);
+    var snap=await db.collection('test_schedule').orderBy('date','asc').get();
+    var items=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());});
+    items=items.filter(function(i){return i.date&&i.date.startsWith(year+'-'+month);});
+    if(cls) items=items.filter(function(i){return i.class===cls;});
     if(!items.length){alert('Is month ka koi schedule nahi mila!');return;}
-
-    // Build message
-    const clsLabel=cls?'Class '+cls:'Sabhi Classes';
-    let msg='📅 *'+monthName+' '+year+' – Test Schedule*
-';
-    msg+='*('+clsLabel+')*
-';
-    msg+='─────────────────────
-
-';
-
-    // Group by date
-    const grouped={};
-    items.forEach(i=>{if(!grouped[i.date])grouped[i.date]=[];grouped[i.date].push(i);});
-
-    Object.entries(grouped).forEach(([date,tests])=>{
-      const d=new Date(date+'T00:00:00');
-      const dayName=d.toLocaleDateString('en-IN',{weekday:'short'});
-      const dateStr=d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
-      msg+='🗓️ *'+dateStr+' ('+dayName+')*
-';
-      tests.forEach(t=>{
+    var clsLabel=cls?'Class '+cls:'Sabhi Classes';
+    var msg='📅 *'+monthName+' '+year+' – Test Schedule*'+String.fromCharCode(10);
+    msg+='*('+clsLabel+')*'+String.fromCharCode(10);
+    msg+='─────────────────────'+String.fromCharCode(10)+String.fromCharCode(10);
+    var grouped={};
+    items.forEach(function(i){if(!grouped[i.date])grouped[i.date]=[];grouped[i.date].push(i);});
+    Object.entries(grouped).forEach(function(entry){
+      var date=entry[0]; var tests=entry[1];
+      var d=new Date(date+'T00:00:00');
+      var dayName=d.toLocaleDateString('en-IN',{weekday:'short'});
+      var dateStr=d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+      msg+='🗓️ *'+dateStr+' ('+dayName+')*'+String.fromCharCode(10);
+      tests.forEach(function(t){
         msg+='  📝 '+t.class+' | '+t.subject+' – '+t.type;
         if(t.chapter) msg+=' | '+t.chapter;
-        msg+='
-';
+        msg+=String.fromCharCode(10);
       });
-      msg+='
-';
+      msg+=String.fromCharCode(10);
     });
-
-    msg+='─────────────────────
-';
-    msg+='📚 कृपया सभी विद्यार्थियों को समय पर तैयारी करवाएं।
-
-';
-    msg+='— GSRM School, Taranagar
-📞 +91 8696235387';
-
+    msg+='─────────────────────'+String.fromCharCode(10);
+    msg+='📚 कृपया सभी विद्यार्थियों को समय पर तैयारी करवाएं।'+String.fromCharCode(10)+String.fromCharCode(10);
+    msg+='— GSRM School, Taranagar'+String.fromCharCode(10)+'📞 +91 8696235387';
     document.getElementById('schMsgText').textContent=msg;
     document.getElementById('schMsgPreview').style.display='block';
     document.getElementById('schWABtn').href='https://wa.me/?text='+encodeURIComponent(msg);
@@ -919,9 +898,9 @@ async function genScheduleMsg(){
 }
 
 function copySchMsg(){
-  const text=document.getElementById('schMsgText').textContent;
-  navigator.clipboard.writeText(text).then(()=>alert('✅ Copy ho gaya!')).catch(()=>{
-    const ta=document.createElement('textarea');ta.value=text;
+  var text=document.getElementById('schMsgText').textContent;
+  navigator.clipboard.writeText(text).then(function(){alert('✅ Copy ho gaya!');}).catch(function(){
+    var ta=document.createElement('textarea');ta.value=text;
     document.body.appendChild(ta);ta.select();document.execCommand('copy');
     document.body.removeChild(ta);alert('✅ Copy ho gaya!');
   });
