@@ -264,6 +264,38 @@ textarea{resize:vertical;min-height:100px;}
 </div>
 </div>
 
+<!-- ABSENT TAB -->
+<div id="tab-absent" class="tab-content">
+<div class="container">
+  <div class="card">
+    <div class="ct">⚠️ Absent Alert</div>
+    <div class="row">
+      <div class="fg"><label>Class</label><select id="abCls" onchange="loadAbsentStudents()"></select></div>
+      <div class="fg"><label>Date</label><input type="date" id="abDate"></div>
+    </div>
+  </div>
+
+  <div class="card" id="abStudentCard" style="display:none;">
+    <div class="ct">❌ Absent Students Select Karein</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <button class="btn bo bsm" onclick="selectAllAbsent()">✅ Select All</button>
+      <button class="btn bo bsm" onclick="deselectAllAbsent()">❌ Deselect All</button>
+    </div>
+    <div id="abStudentList"></div>
+    <button class="btn bp bfl" onclick="genAbsentMsg()">✅ Message Generate Karein</button>
+  </div>
+
+  <div class="card" id="abMsgCard" style="display:none;">
+    <div class="ct">💬 WhatsApp Message</div>
+    <div class="mp" id="abPrev"></div>
+    <div class="ma">
+      <a id="abWA" href="#" target="_blank" class="btn bwa">📱 Open WhatsApp</a>
+      <button class="btn bo" onclick="copyMsg('abPrev')">📋 Copy</button>
+    </div>
+  </div>
+</div>
+</div>
+
 <!-- SCHEDULE TAB -->
 <div id="tab-schedule" class="tab-content">
 <div class="container">
@@ -436,6 +468,7 @@ function showApp(){
     <div class="tab" onclick="switchTab('unitTest')">📝 Unit Test</div>
     <div class="tab" onclick="switchTab('monthlyTest')">📊 Monthly Test</div>
     <div class="tab" onclick="switchTab('homework')">📚 Homework</div>
+    <div class="tab" onclick="switchTab('absent')">⚠️ Absent</div>
     <div class="tab" onclick="switchTab('notice')">📢 Notice</div>
     <div class="tab" onclick="switchTab('schedule')">📅 Schedule</div>`;
     document.getElementById('tab-students').classList.add('active');
@@ -443,6 +476,7 @@ function showApp(){
     t.innerHTML=`<div class="tab active" onclick="switchTab('unitTest')">📝 Unit Test</div>
     <div class="tab" onclick="switchTab('monthlyTest')">📊 Monthly Test</div>
     <div class="tab" onclick="switchTab('homework')">📚 Homework</div>
+    <div class="tab" onclick="switchTab('absent')">⚠️ Absent</div>
     <div class="tab" onclick="switchTab('notice')">📢 Notice</div>
     <div class="tab" onclick="switchTab('schedule')">📅 Schedule</div>`;
     document.getElementById('tab-unitTest').classList.add('active');
@@ -460,7 +494,7 @@ function showApp(){
 
 // ── DROPDOWNS ─────────────────────────────────────────────────
 function populateDDs(){
-  ['addCls','filterCls','utCls','mtCls','hwCls','tnCls','schClass','schFilterClass','schMsgClass'].forEach(id=>{
+  ['addCls','filterCls','utCls','mtCls','hwCls','tnCls','schClass','schFilterClass','schMsgClass','abCls'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
     const isFilter=id==='filterCls';
     el.innerHTML=(isFilter?'<option value="">All Classes</option>':'<option value="">-- Select Class --</option>')+CLASSES.map(c=>`<option>${c}</option>`).join('');
@@ -906,10 +940,87 @@ function copySchMsg(){
   });
 }
 
+// ── ABSENT FUNCTIONS ─────────────────────────────────────────
+function loadAbsentStudents(){
+  var cls=document.getElementById('abCls').value;
+  if(!cls) return;
+  var list=students.filter(function(s){return s.class===cls;});
+  if(!list.length){alert('Is class me koi student nahi hai. Pehle Students tab me add karein.');return;}
+
+  // Set today's date if not set
+  var dateEl=document.getElementById('abDate');
+  if(!dateEl.value){
+    var today=new Date();
+    dateEl.value=today.toISOString().split('T')[0];
+  }
+
+  document.getElementById('abStudentCard').style.display='block';
+  document.getElementById('abMsgCard').style.display='none';
+  document.getElementById('abStudentList').innerHTML=list.map(function(s,i){
+    return '<div class="hi" id="ab_item_'+s.id+'" onclick="toggleAbsent(this)" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg);border-radius:10px;margin-bottom:6px;cursor:pointer;">'
+      +'<input type="checkbox" id="ab_'+s.id+'" style="width:18px;height:18px;accent-color:var(--red);pointer-events:none;">'
+      +'<div style="font-size:13px;font-weight:600;">'+(i+1)+'. '+s.name+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function toggleAbsent(el){
+  var cb=el.querySelector('input[type=checkbox]');
+  cb.checked=!cb.checked;
+  el.style.background=cb.checked?'#fef2f2':'var(--bg)';
+}
+
+function selectAllAbsent(){
+  document.querySelectorAll('#abStudentList .hi').forEach(function(el){
+    var cb=el.querySelector('input');
+    cb.checked=true;
+    el.style.background='#fef2f2';
+  });
+}
+
+function deselectAllAbsent(){
+  document.querySelectorAll('#abStudentList .hi').forEach(function(el){
+    var cb=el.querySelector('input');
+    cb.checked=false;
+    el.style.background='var(--bg)';
+  });
+}
+
+function genAbsentMsg(){
+  var cls=document.getElementById('abCls').value;
+  var checked=document.querySelectorAll('#abStudentList input[type=checkbox]:checked');
+  if(!checked.length){alert('Koi student select nahi kiya!');return;}
+
+  var names=Array.from(checked).map(function(cb,i){
+    var item=cb.parentElement;
+    var nameEl=item.querySelector('div');
+    var fullText=nameEl.textContent.trim();
+    // Remove "1. " prefix
+    var name=fullText.replace(/^\d+\.\s+/,'');
+    return (i+1)+'. '+name;
+  }).join('
+');
+
+  var msg='सम्माननीय अभिभावकों,
+
+यह अवगत कराया जाता है कि कक्षा '+cls+' के निम्नलिखित विद्यार्थी आज विद्यालय में अनुपस्थित रहे हैं:
+
+'+names+'
+
+आपसे विनम्र अनुरोध है कि कृपया अनुपस्थिति का कारण जानकर बच्चे की नियमित विद्यालय उपस्थिति सुनिश्चित करें, ताकि उसकी पढ़ाई निरंतर एवं प्रभावी रूप से जारी रह सके।
+
+— GSRM School, Taranagar
+📞 +91 8696235387';
+
+  document.getElementById('abPrev').textContent=msg;
+  document.getElementById('abMsgCard').style.display='block';
+  document.getElementById('abWA').href='https://wa.me/?text='+encodeURIComponent(msg);
+  document.getElementById('abMsgCard').scrollIntoView({behavior:'smooth'});
+}
+
 // ── INIT ──────────────────────────────────────────────────────
 if(currentTeacher&&TEACHERS[currentTeacher]){isAdmin=(currentTeacher==='admin');showApp();}
-</script>
-<script>
+
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
     navigator.serviceWorker.register('sw.js').catch(()=>{});
