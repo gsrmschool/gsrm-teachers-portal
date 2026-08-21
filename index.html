@@ -117,6 +117,17 @@ textarea{resize:vertical;min-height:100px;}
 <!-- STUDENTS TAB -->
 <div id="tab-students" class="tab-content">
 <div class="container">
+
+  <!-- Admin: Manage Classes -->
+  <div class="card" id="manageClassesCard">
+    <div class="ct">📚 Manage Classes (Admin Only)</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <input type="text" id="newClassName" placeholder="Class naam likho (e.g. 11th Commerce, 8th B)" style="flex:1;">
+      <button class="btn bp" id="addClassBtn" style="flex:0;">➕ Add</button>
+    </div>
+    <div id="classesList" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;"></div>
+  </div>
+
   <div class="card">
     <div class="ct">Add Students</div>
     <div class="fg"><label>Class</label><select id="addCls" onchange="onAddClsChange()"></select></div>
@@ -381,6 +392,8 @@ document.getElementById('loginBtn').addEventListener('click', doLogin);
 document.getElementById('loginPass').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
 document.getElementById('loginId').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
 document.getElementById('logoutBtn').addEventListener('click', doLogout);
+document.getElementById('addClassBtn').addEventListener('click', addNewClass);
+document.getElementById('newClassName').addEventListener('keydown', function(e){ if(e.key==='Enter') addNewClass(); });
 document.getElementById('saveEditBtn').addEventListener('click', saveEdit);
 document.getElementById('closeEditBtn').addEventListener('click', function(){ document.getElementById('editModal').classList.remove('show'); });
 document.getElementById('addBulkBtn').addEventListener('click', addBulk);
@@ -445,6 +458,9 @@ function showApp(){
   }
   populateDDs();
   loadStudents();
+  loadClasses();
+  var mcc=document.getElementById('manageClassesCard');
+  if(mcc) mcc.style.display=isAdmin?'block':'none';
   var now=new Date();
   var nm=new Date(now.getFullYear(),now.getMonth()+1,1);
   var mel=document.getElementById('schMsgMonth');
@@ -883,6 +899,80 @@ function showRes(id,msg){
   el.style.display='block';
   el.innerHTML='<div style="background:#d1fae5;color:#065f46;padding:10px 14px;border-radius:10px;font-weight:700;">'+msg+'</div>';
   setTimeout(function(){ el.style.display='none'; },3000);
+}
+
+// ── CLASS MANAGEMENT ─────────────────────────────────────────
+var customClasses = [];
+
+async function loadClasses(){
+  try{
+    var snap = await db.collection('classes').orderBy('name').get();
+    customClasses = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+    // Merge with default classes
+    var customNames = customClasses.map(function(c){ return c.name; });
+    var allCls = CLASSES.concat(customNames.filter(function(n){ return CLASSES.indexOf(n)===-1; }));
+    updateAllClassDropdowns(allCls);
+    renderClassesList();
+  }catch(e){ console.error('loadClasses error:', e); }
+}
+
+function updateAllClassDropdowns(allCls){
+  var ids=['addCls','filterCls','utCls','mtCls','hwCls','tnCls','abCls','schCls','schFilterCls','schMsgCls'];
+  ids.forEach(function(id){
+    var el=document.getElementById(id);
+    if(!el) return;
+    var isFilter=(id==='filterCls'||id==='schFilterCls'||id==='schMsgCls');
+    var curVal=el.value;
+    el.innerHTML=(isFilter?'<option value="">All Classes</option>':'<option value="">-- Select --</option>')+
+      allCls.map(function(c){ return '<option'+(c===curVal?' selected':'')+'>'+c+'</option>'; }).join('');
+  });
+  var ec=document.getElementById('editCls');
+  if(ec){
+    var curVal=ec.value;
+    ec.innerHTML='<option value="">-- Select --</option>'+allCls.map(function(c){ return '<option'+(c===curVal?' selected':'')+'>'+c+'</option>'; }).join('');
+  }
+}
+
+function renderClassesList(){
+  var el=document.getElementById('classesList');
+  if(!el) return;
+  // Show all classes (default + custom)
+  var customNames=customClasses.map(function(c){ return c.name; });
+  var html='';
+  // Default classes - grey chips
+  CLASSES.forEach(function(c){
+    html+='<span style="background:#eef2ff;color:#3b3fce;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;">'+c+'</span>';
+  });
+  // Custom classes - with delete button
+  customClasses.forEach(function(c){
+    html+='<span style="background:#d1fae5;color:#065f46;border-radius:20px;padding:4px 8px 4px 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">'
+      +c.name
+      +'<button onclick="deleteClass(''+c.id+'',''+c.name.replace(/'/g,"\'")+'''+')" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:14px;line-height:1;">×</button>'
+      +'</span>';
+  });
+  if(!html) html='<div style="color:var(--muted);font-size:12px;">Koi custom class nahi hai abhi.</div>';
+  el.innerHTML=html;
+}
+
+async function addNewClass(){
+  var name=document.getElementById('newClassName').value.trim();
+  if(!name){alert('Class ka naam likho!');return;}
+  if(CLASSES.indexOf(name)!==-1){alert(name+' pehle se exist karta hai!');return;}
+  var exists=customClasses.find(function(c){ return c.name.toLowerCase()===name.toLowerCase(); });
+  if(exists){alert(name+' pehle se exist karta hai!');return;}
+  try{
+    await db.collection('classes').add({name:name,addedBy:currentTeacher,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    document.getElementById('newClassName').value='';
+    await loadClasses();
+  }catch(e){alert('Error: '+e.message);}
+}
+
+async function deleteClass(id,name){
+  if(!confirm('"'+name+'" class delete karein? Is class ke students aur data affect nahi honge.')) return;
+  try{
+    await db.collection('classes').doc(id).delete();
+    await loadClasses();
+  }catch(e){alert('Error: '+e.message);}
 }
 
 if(currentTeacher&&TEACHERS[currentTeacher]){ isAdmin=(currentTeacher==='admin'); showApp(); }
