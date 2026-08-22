@@ -936,19 +936,17 @@ function updateAllClassDropdowns(allCls){
 function renderClassesList(){
   var el=document.getElementById('classesList');
   if(!el) return;
-  // Show all classes (default + custom)
-  var customNames=customClasses.map(function(c){ return c.name; });
   var html='';
-  // Default classes - grey chips
   CLASSES.forEach(function(c){
     html+='<span style="background:#eef2ff;color:#3b3fce;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;">'+c+'</span>';
   });
-  // Custom classes - with delete button
   customClasses.forEach(function(c){
-    html+='<span style="background:#d1fae5;color:#065f46;border-radius:20px;padding:4px 8px 4px 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">'
-      +c.name
-      +'<button onclick="deleteClass(''+c.id+'',''+c.name.replace(/'/g,"\'")+'''+')" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:14px;line-height:1;">×</button>'
-      +'</span>';
+    var safeId=c.id;
+    var safeName=c.name;
+    html+='<span style="background:#d1fae5;color:#065f46;border-radius:20px;padding:4px 8px 4px 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">';
+    html+=safeName;
+    html+='<button data-id="'+safeId+'" data-name="'+safeName+'" onclick="deleteClass(this.dataset.id,this.dataset.name)" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:14px;line-height:1;">x</button>';
+    html+='</span>';
   });
   if(!html) html='<div style="color:var(--muted);font-size:12px;">Koi custom class nahi hai abhi.</div>';
   el.innerHTML=html;
