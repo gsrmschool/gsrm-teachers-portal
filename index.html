@@ -554,10 +554,16 @@ async function addBulk(){
   var raw=document.getElementById('bulkNames').value.trim();
   if(!cls){alert('Select class!');return;}
   if(!raw){alert('Enter names!');return;}
-  var subjects=COMPULSORY[cls].slice();
-  if(OPTIONAL[cls]){
-    if(!selectedOpt){alert('Select optional subject!');return;}
-    subjects.push(selectedOpt);
+  var subjects=[];
+  if(COMPULSORY[cls]){
+    subjects=COMPULSORY[cls].slice();
+    if(OPTIONAL[cls]){
+      if(!selectedOpt){alert('Select optional subject!');return;}
+      subjects.push(selectedOpt);
+    }
+  } else {
+    // Custom class - no predefined subjects
+    subjects=['General'];
   }
   var names=raw.split('\n').map(function(n){ return n.trim(); }).filter(function(n){ return n; });
   var existing=students.filter(function(s){ return s.class===cls; }).map(function(s){ return s.name.toLowerCase(); });
