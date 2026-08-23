@@ -134,6 +134,7 @@ textarea{resize:vertical;min-height:100px;}
     <div id="optArea" style="display:none;">
       <div class="fg"><label>Optional Subject</label><div class="opt-btns" id="optBtns"></div></div>
     </div>
+    <div id="customSubsArea" style="display:none;"></div>
     <div class="fg"><label>Student Names (One per line)</label>
       <textarea id="bulkNames" placeholder="Aaina&#10;Anita Kanwar&#10;Anju Kanwar"></textarea>
     </div>
@@ -499,12 +500,29 @@ function onAddClsChange(){
   selectedOpt='';
   var area=document.getElementById('optArea');
   var btns=document.getElementById('optBtns');
+  var customSubsArea=document.getElementById('customSubsArea');
   if(OPTIONAL[cls]){
     area.style.display='block';
     btns.innerHTML=OPTIONAL[cls].map(function(s){
-      return '<button class="opt-btn" data-val="'+s+'" onclick="selectOpt(this,\''+s+'\')">'+s+'</button>';
+      return '<button class="opt-btn" data-val="'+s+'" onclick="selectOpt(this,''+s+'')">'+s+'</button>';
     }).join('');
-  } else { area.style.display='none'; btns.innerHTML=''; }
+    if(customSubsArea) customSubsArea.style.display='none';
+  } else if(cls && !COMPULSORY[cls]){
+    area.style.display='none';
+    btns.innerHTML='';
+    if(customSubsArea){
+      var allSubs=['Hindi','English','Maths','Science','Social Science','Sanskrit','EVS','Physics','Chemistry','Biology','Geography','Hindi Literature','Drawing','Political Science'];
+      customSubsArea.style.display='block';
+      customSubsArea.innerHTML='<div class="fg"><label>Subjects Select Karein</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">'
+        +allSubs.map(function(s){
+          return '<label style="display:flex;align-items:center;gap:4px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;"><input type="checkbox" name="customSub" value="'+s+'">'+s+'</label>';
+        }).join('')+'</div></div>';
+    }
+  } else {
+    area.style.display='none';
+    btns.innerHTML='';
+    if(customSubsArea) customSubsArea.style.display='none';
+  }
 }
 
 function selectOpt(el,val){
@@ -562,8 +580,10 @@ async function addBulk(){
       subjects.push(selectedOpt);
     }
   } else {
-    // Custom class - no predefined subjects
-    subjects=['General'];
+    // Custom class - use selected subjects
+    var checkedSubs=Array.from(document.querySelectorAll('#customSubsArea input:checked')).map(function(i){ return i.value; });
+    if(!checkedSubs.length){alert('Subjects select karein!');return;}
+    subjects=checkedSubs;
   }
   var names=raw.split('\n').map(function(n){ return n.trim(); }).filter(function(n){ return n; });
   var existing=students.filter(function(s){ return s.class===cls; }).map(function(s){ return s.name.toLowerCase(); });
@@ -614,6 +634,12 @@ function openEdit(id){
   document.getElementById('editCls').value=s.class;
   var subs=allSubs(s.class);
   var sel=s.subjects||[];
+  // For custom classes, show all possible subjects
+  if(!subs.length){
+    subs=['Hindi','English','Maths','Science','Social Science','Sanskrit','EVS','Physics','Chemistry','Biology','Geography','Hindi Literature','Drawing','Political Science'];
+    // Also include any already selected subjects not in default list
+    sel.forEach(function(sub){ if(subs.indexOf(sub)===-1) subs.push(sub); });
+  }
   document.getElementById('editSubArea').innerHTML='<div class="fg"><label>Subjects</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">'
     +subs.map(function(sub){
       return '<label style="display:flex;align-items:center;gap:4px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;">'
